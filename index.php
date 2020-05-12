@@ -145,7 +145,7 @@ if (is_dir($folder."/app")){
 														$iNbFailed++;
 														//On remplace le dernier paquet analysé par celui par defaut (mage)
 														$classe = explode("_",$classe);
-														$classe[0] = "???";
+														$classe[0] = "Mage";
 														$classe = implode("_",$classe);
 														
 														//On remplace les paquets dépréciés
