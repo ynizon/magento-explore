@@ -30,6 +30,40 @@ $tabOverrides = [];
 if (is_dir($folder."/app")){
 	//Parcourt des reps
 	$bCheck = true;
+	$tabOverrideInfo = ["blocks","helpers","models","resources","events"];
+								
+	//Liste des elemnts deprecies
+	$tabDeprecated = [];
+	$packages = scandir($folder."/app/code");
+	foreach ($packages as $package){
+		if ($package != "." and $package != ".."){
+			$providers = scandir($folder."/app/code/".$package);
+			foreach ($providers as $provider){
+				if ($provider != "." and $provider != ".."){
+					$modules = scandir($folder."/app/code/".$package."/".$provider);
+					foreach ($modules as $module){
+						if ($module != "." and $module != ".."){
+							$file_config = $folder."/app/code/".$package."/".$provider."/".$module."/etc/config.xml";
+							if (file_exists($file_config)){
+								$xml = simplexml_load_file($file_config);
+								$xml = xmlToArray($xml);
+								
+								foreach ($tabOverrideInfo as $override){
+									if (isset($xml["config"]["global"][$override])){
+										foreach ($xml["config"]["global"][$override] as $keynode=>$node){
+											if (isset($node["deprecatedNode"]) and isset($node["class"])){
+												$tabDeprecated[$provider."_".$node["deprecatedNode"]["value"]] = $node["class"]["value"];
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	
 	$iNbFailed = 0;
 	$packages = scandir($folder."/app/code");
@@ -47,7 +81,6 @@ if (is_dir($folder."/app")){
 								$xml = simplexml_load_file($file_config);
 								$xml = xmlToArray($xml);
 								
-								$tabOverrideInfo = ["blocks","helpers","models","resources","events"];
 								foreach ($tabOverrideInfo as $override){
 									if (isset($xml["config"]["global"][$override])){
 										foreach ($xml["config"]["global"][$override] as $keynode=>$node){
@@ -55,7 +88,7 @@ if (is_dir($folder."/app")){
 												foreach ($node["rewrite"] as $rewrite=>$value){
 													
 													$link = "";
-													$failed = "style='color:red'";
+													$failed = "color:red;";
 													foreach ($packages as $spackage){
 														if ($spackage != "." and $spackage != ".."){
 															$devs = array_merge([""],scandir($folder."/app/code/".$spackage));
@@ -106,16 +139,39 @@ if (is_dir($folder."/app")){
 															}
 														}
 													}
+													
+													//Si erreur
 													if ($failed != ""){
 														$iNbFailed++;
 														//On remplace le dernier paquet analysé par celui par defaut (mage)
 														$classe = explode("_",$classe);
-														$classe[0] = "Mage";
+														$classe[0] = "???";
 														$classe = implode("_",$classe);
+														
+														//On remplace les paquets dépréciés
+														$deprecated = false;
+														foreach ($tabDeprecated as $key=>$v){
+															if (stripos($classe,$key) !== false){
+																$classe = str_ireplace($key,$v,$classe);
+																$failed .= "text-decoration:line-through;";
+																$deprecated = true;
+															}
+														}
+														
+														if ($deprecated){
+															$iNbFailed--;
+														}
 													}
 													
+													//On verifie si il faut lier ces 2 mots
+													if (stripos($classe,"_resource") !== false and stripos($classe,"_model") !== false){
+														$classe = str_ireplace("_model","",$classe);
+														$classe = str_ireplace("_resource","_Model_Resource",$classe);
+													}
+													
+													
 													$classe = camelCase($classe);
-													$tabOverrides[$value["value"]] = ["classe"=>$classe,"warning"=>"","type"=>$override,"package"=>$package,"link"=>"<a target='_blank' href='".$link."' ".$failed.">".$classe."</a>"];	
+													$tabOverrides[$value["value"]] = ["classe"=>$classe,"warning"=>"","type"=>$override,"package"=>$package,"link"=>"<a target='_blank' href='".$link."' style='".$failed."'>".$classe."</a>"];	
 												}
 											}
 										}
