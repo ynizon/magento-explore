@@ -1,0 +1,12 @@
+{
+    "name": "nizon/magento",
+    "description": "Tool for Explore Magento 1 Classes",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Yohann Nizon",
+            "email": "ynizon@gmail.com"
+        }
+    ],
+    "require": {}
+}
