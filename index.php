@@ -87,6 +87,66 @@ if (is_dir($folder."/app")){
 											if (isset($node["rewrite"])){
 												foreach ($node["rewrite"] as $rewrite=>$value){
 													
+													$linkClasse = "";
+													
+													foreach ($packages as $spackage){
+														if ($spackage != "." and $spackage != ".."){
+															$devs = array_merge([""],scandir($folder."/app/code/".$spackage));
+															foreach ($devs as $dev){
+																if ( $dev != ".." and $dev != "."){
+																	if ($dev != ""){
+																		$dev = $dev ."_";
+																	}
+																	
+																	$tabKeyNode = explode("_",$value["value"]);
+																	
+																	
+																	$classes = explode("_",$dev.$tabKeyNode[0]);
+																	if (isset($tabKeyNode[1])){
+																		$z = 0;
+																		foreach ($tabKeyNode as $keynodex){
+																			if ($z>0){
+																				$classes[] = $keynodex;
+																			}
+																			$z++;
+																		}
+																		
+																	}
+																	
+																	
+																	//$classes[] = $rewrite;
+																	
+																	$classe = implode("_",$classes);
+																	
+																	
+																	$file_check = $folder."/app/code/".$spackage."/".str_replace("_","/",$classe).".php";
+																	
+																	if (file_exists($file_check)){
+																		$linkClasse = "pheditor.php?sub=". dirname($file_check)."&file=/". basename($file_check)."#/". basename($file_check);
+																	}else{
+																		//Il y a 2 mode d ecriture, on test les 2 modes
+																		$classes2 = explode("_",$dev.$tabKeyNode[0]."_".$keynode."_".substr($override,0,strlen($override)-1));
+																		
+																		$classes2[] = $rewrite;
+																		$classe = implode("_",$classes2);
+																		
+																		//On verifie si il faut lier ces 2 mots
+																		if (stripos($classe,"_resource") !== false and stripos($classe,"_model") !== false){
+																			$classe = str_ireplace("_model","",$classe);
+																			$classe = str_ireplace("_resource","_Model_Resource",$classe);
+																		}
+																		
+																		$file_check = $folder."/app/code/".$spackage."/".str_replace("_","/",$classe).".php";
+																		if (file_exists($file_check)){
+																			$linkClasse = "pheditor.php?sub=". dirname($file_check)."&file=/". basename($file_check)."#/". basename($file_check);
+																		}
+																	}
+																}
+															}
+														}
+													}
+													
+													
 													$link = "";
 													$failed = "color:red;";
 													foreach ($packages as $spackage){
@@ -171,7 +231,7 @@ if (is_dir($folder."/app")){
 													
 													
 													$classe = camelCase($classe);
-													$tabOverrides[$value["value"]] = ["classe"=>$classe,"warning"=>"","type"=>$override,"package"=>$package,"link"=>"<a target='_blank' href='".$link."' style='".$failed."'>".$classe."</a>"];	
+													$tabOverrides[$value["value"]] = ["linkClasse"=>$linkClasse,"classe"=>$classe,"warning"=>"","type"=>$override,"package"=>$package,"link"=>"<a target='_blank' href='".$link."' style='".$failed."'>".$classe."</a>"];	
 												}
 											}
 										}
@@ -189,7 +249,7 @@ if (is_dir($folder."/app")){
 	foreach ($tabOverrides as $key=>$value){
 		foreach ($tabOverrides as $key2=>$value2){
 			if ($value["classe"] == $value2["classe"] and $key!=$key2){
-				$tabOverrides[$key]["warning"] = "<i class='fa fa-warning' title='Attention surcharge multiple'></i>&nbsp;";//$tabOverrides[$key]["classe"];	
+				$tabOverrides[$key]["warning"] = "<i class='fa fa-warning' onclick='warning(\"".$tabOverrides[$key]["classe"]."\")' style='cursor:pointer' title='Attention surcharge multiple'></i>&nbsp;";	
 			}
 		}
 	}
@@ -348,7 +408,7 @@ function xmlToArray(SimpleXMLElement $xml): array
 							foreach ($tabOverrides as $classe=>$surcharge){
 								?>
 								<tr>
-									<td><?php echo $classe;?></td>
+									<td><a href='<?php echo $surcharge["linkClasse"];?>' target='_blank'><?php echo $classe;?></a></td>
 									<td><?php echo $surcharge["package"];?></td>
 									<td><?php echo $surcharge["type"];?></td>
 									<td><?php echo $surcharge["warning"].$surcharge["link"];?></td>
@@ -514,6 +574,11 @@ function xmlToArray(SimpleXMLElement $xml): array
 				$("#layout").html($("#layout").html() + ("\n\t</reference>"));
 				$("#layout").html($("#layout").html() + ("\n</"+$("#controlleur").val() +">"));
 			}
+			
+			function warning(s){
+				$("#table_override").DataTable().search( s ).draw();
+			}
+			
 			</script>
 		</div>
     </body>
